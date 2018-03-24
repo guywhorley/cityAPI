@@ -20,6 +20,9 @@ namespace CityInfo.API
 			Configuration = configuration;
 			
 		}
+
+		// NOTES: Custom services are registered in ConfigureServices()
+
 		// (added by VS)
 		// This method gets called by the runtime. Use this method to ADD services to the container.
 		// For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
