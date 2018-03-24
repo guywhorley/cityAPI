@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using NLog.Web;
+using Microsoft.Extensions.Logging;
 
 namespace CityInfo.API
 {
@@ -7,6 +9,10 @@ namespace CityInfo.API
     {
         public static void Main(string[] args)
         {
+	        // NLog: setup the logger first to catch all errors
+	        var logger = NLog.LogManager.LoadConfiguration("nlog.config").GetCurrentClassLogger();
+
+	        logger.Debug("Initialize main");
             BuildWebHost(args)
 				.Run();
         }
@@ -14,6 +20,12 @@ namespace CityInfo.API
         public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>()
-                .Build();
+	            .ConfigureLogging(logging =>
+	            {
+		            logging.ClearProviders();
+		            logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+	            })
+	            .UseNLog()  // NLog: setup NLog for Dependency injection
+				.Build();
     }
 }

@@ -3,14 +3,28 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CityInfo.API.Models;
+using CityInfo.API.Services;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace CityInfo.API.Controllers
 {
 	[Route("api/cities")]
 	public class PointsOfInterestController : Controller
 	{
+		public IMailService MailService { get; }
+
+		public ILogger<PointsOfInterestController> Logger { get; private set;  } 
+
+		// "constructor" injection - the Container will provide the logger.
+		public PointsOfInterestController(ILogger<PointsOfInterestController> logger,
+			IMailService mailService)
+		{
+			Logger = logger;
+			MailService = mailService;
+		}
+
 		public IActionResult Index()
 		{
 			return View();
@@ -19,11 +33,22 @@ namespace CityInfo.API.Controllers
 		[HttpGet("{cityId}/pointsofinterest")]
 		public IActionResult GetPointsOfInterest(int cityId)
 		{
-			var city = CitiesDataStore.Current.Cities.FirstOrDefault(c => c.Id == cityId);
-			if (city == null)
-				return NotFound();
+			try
+			{	
+				var city = CitiesDataStore.Current.Cities.FirstOrDefault(c => c.Id == cityId);
+				if (city == null)
+				{
+					Logger.LogInformation($"City not found! [id={cityId}]");
+					return NotFound();
+				}
 
-			return Ok(city.PointsOfInterest);
+				return Ok(city.PointsOfInterest);
+			}
+			catch (Exception e)
+			{
+				Logger.LogCritical($"Exception while getting points of interest for city with id {cityId}", e);
+				return StatusCode(500, "A problem occured while handling your request.");
+			}
 		}
 
 		[HttpGet("{cityId}/pointsofinterest/{id}", Name = "GetPointOfInterest")]
@@ -204,6 +229,9 @@ namespace CityInfo.API.Controllers
 			}
 
 			city.PointsOfInterest.Remove(poiFromStore);
+			MailService.Send("Point of interest was deleted.",
+				$"[Poi] \"{poiFromStore.Name}\", [id] \"{poiFromStore.Id}\" was deleted.");
+
 			return NoContent();
 		}
 
