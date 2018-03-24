@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Serialization;
+using Microsoft.Extensions.Logging;
 
 namespace CityInfo.API
 {
@@ -38,8 +38,10 @@ namespace CityInfo.API
 
 		// (added by VS)
 		// This method gets called by the runtime. Use this method to CONFIGURE the HTTP request pipeline.
-		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
+			//loggerFactory.AddConsole();
+			//loggerFactory.AddDebug();
 
 			// Configure middleware based on different environments
 			// (See project properties debug tab to set the enviornment value ("Development | Staging | Production")
