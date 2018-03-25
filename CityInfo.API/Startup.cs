@@ -1,7 +1,9 @@
-﻿using CityInfo.API.Services;
+﻿using CityInfo.API.Entities;
+using CityInfo.API.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -18,7 +20,6 @@ namespace CityInfo.API
 			// ASP.NET Core 2 automatically builds the configuration and looks for appSettings.json or appSetting.Production.json 
 			// or whatever other environment you have specified.
 			Configuration = configuration;
-			
 		}
 
 		// NOTES: Custom services are registered in ConfigureServices()
@@ -28,8 +29,8 @@ namespace CityInfo.API
 		// For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
 		public void ConfigureServices(IServiceCollection services)
 		{
+
 			// adding MVC middleware
-			//services.AddMvc(); // default, json output
 
 			// XML Output Support - to use xml output on API response, ensure that the request 
 			// has an "Accept=application/xml" header, otherwise will default to application/json
@@ -42,31 +43,23 @@ namespace CityInfo.API
 
 			// CUSTOM SERVICE (my mail service)
 			// you can change the service based on compiler directives
-
 #if DEBUG
+			// created each time requests - best for lightweight.
 			services.AddTransient<IMailService, LocalMailService>();
 #else
 			services.AddTransient<IMailService, CloudMailService>();
 #endif
-			//services.AddSingleton<LocalMailService>();
-			//services.AddScoped<LocalMailService>();
-
-			// the following code converts the property names to first letter upper case
-			//.AddJsonOptions(o => {
-			//	if (o.SerializerSettings.ContractResolver != null)
-			//	{
-			//		var castedResolver = o.SerializerSettings.ContractResolver as DefaultContractResolver;
-			//		castedResolver.NamingStrategy = null;
-			//	}
-			//});
+			// fetch the connection string from appSettings or env
+			var connectionString = Startup.Configuration["connectionStrings:devDBConnectionString"];
+			services.AddDbContext<CityInfoContext>(o => o.UseSqlServer(connectionString));
 		}
 
+		// Using DI, the services are injected.
 		// (added by VS)
 		// This method gets called by the runtime. Use this method to CONFIGURE the HTTP request pipeline.
-		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory,
+			CityInfoContext cityInfoContext)
 		{
-			//loggerFactory.AddConsole();
-			//loggerFactory.AddDebug();
 
 			// Configure middleware based on different environments
 			// (See project properties debug tab to set the enviornment value ("Development | Staging | Production")
@@ -82,27 +75,11 @@ namespace CityInfo.API
 				app.UseExceptionHandler();
 			}
 
+			// add seed data if not present 
+			cityInfoContext.EnsureSeedDataForContext();
+
 			// use the MVC middleware
 			app.UseMvc();
-
-
-			// Example of Convention-based routing... usually for when returning html, not good for just API
-			//app.UseMvc(config =>
-			//{
-			//	config.MapRoute(
-			//		name: "Default",
-			//		template: "{controller}/{action}/{id?}",
-			//		defaults: new { controller="Home", action="Index" }
-			//		);
-
-			//});
-
-			// for non-mvc
-			/*app.Run(async (context) =>
-            {
-				//throw new Exception("Example Exception"); // throws a 500 error
-                await context.Response.WriteAsync("Hello World!");
-            });*/
 		}
 	}
 }
